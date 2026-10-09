@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>AP1 · 交互式 2D 分形（WebGL 2.0）</title>
+<meta name="description" content="计算机图形学应用实践 AP1：交互式 2D 分形——混沌游戏与递归细分生成谢尔宾斯基垫片，附 Mandelbrot / Julia 探索器。" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <header class="brand">
+      <div class="logo">◈</div>
+      <div class="brand-text">
+        <h1>交互式 2D 分形</h1>
+        <p>AP1 · WebGL 2.0 · 计算机图形学应用实践</p>
+      </div>
+    </header>
+
+    <section class="group">
+      <h2>分形类型</h2>
+      <div class="segmented" id="fractalType">
+        <button type="button" data-value="sierpinski">谢尔宾斯基</button>
+        <button type="button" data-value="mandelbrot">曼德博集合</button>
+        <button type="button" data-value="julia">Julia 集</button>
+      </div>
+    </section>
+
+    <section class="group" id="groupSierpinski">
+      <h2>生成算法</h2>
+      <div class="segmented two" id="generator">
+        <button type="button" data-value="chaos">混沌游戏</button>
+        <button type="button" data-value="subdivision">递归细分</button>
+      </div>
+
+      <div class="row" id="rowNgon">
+        <label for="ngon">多边形边数 n</label>
+        <input type="range" id="ngon" min="3" max="9" step="1" value="3" />
+        <output id="ngonVal">3</output>
+      </div>
+
+      <div class="row" id="rowCount">
+        <label for="count">顶点数（点云）</label>
+        <input type="range" id="count" min="5000" max="200000" step="5000" value="20000" />
+        <output id="countVal">20000</output>
+      </div>
+
+      <div class="row" id="rowDepth">
+        <label for="depth">递归深度</label>
+        <input type="range" id="depth" min="0" max="6" step="1" value="4" />
+        <output id="depthVal">4</output>
+      </div>
+
+      <h2 class="sub">渲染模式</h2>
+      <div class="segmented" id="mode">
+        <button type="button" data-value="points">点云 <kbd>1</kbd></button>
+        <button type="button" data-value="lines">线框 <kbd>2</kbd></button>
+        <button type="button" data-value="triangles">实体 <kbd>3</kbd></button>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </section>
+
+    <section class="group" id="groupMandel">
+      <h2>迭代参数</h2>
+      <div class="row">
+        <label for="maxIter">最大迭代</label>
+        <input type="range" id="maxIter" min="50" max="1000" step="10" value="200" />
+        <output id="maxIterVal">200</output>
+      </div>
+      <div class="row" id="rowJulia">
+        <label for="juliaCx">c 实部</label>
+        <input type="range" id="juliaCx" min="-2" max="2" step="0.001" value="-0.8" />
+        <output id="juliaCxVal">-0.800</output>
+      </div>
+      <div class="row" id="rowJulia2">
+        <label for="juliaCy">c 虚部</label>
+        <input type="range" id="juliaCy" min="-2" max="2" step="0.001" value="0.156" />
+        <output id="juliaCyVal">0.156</output>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>外观</h2>
+      <div class="row">
+        <label for="pointSize">点大小</label>
+        <input type="range" id="pointSize" min="1" max="16" step="0.5" value="3" />
+        <output id="pointSizeVal">3</output>
+      </div>
+      <div class="row">
+        <label for="palette">配色方案</label>
+        <select id="palette">
+          <option value="0">青瓷流光</option>
+          <option value="1">霓虹彩虹</option>
+          <option value="2">熔岩蓝橙</option>
+          <option value="3">翡翠单色</option>
+          <option value="4">星尘紫晶</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>生长动画</h2>
+      <div class="row">
+        <label for="animSpeed">生长速度</label>
+        <input type="range" id="animSpeed" min="0.05" max="2" step="0.05" value="0.4" />
+        <output id="animSpeedVal">0.40</output>
+      </div>
+      <div class="btnrow">
+        <button type="button" class="btn primary" id="animateBtn">播放生长（空格）</button>
+        <button type="button" class="btn" id="resetBtn">重置视角 R</button>
+      </div>
+      <p class="hint" id="animHint"></p>
+    </section>
+
+    <section class="group">
+      <h2>自检</h2>
+      <div class="btnrow single">
+        <button type="button" class="btn" id="selfTestBtn">运行自检</button>
+      </div>
+      <p class="hint">逐项检查 WebGL 上下文、两种生成算法、相机变换与缩放、四条绘制路径、配色表与面板配置，并给出结果（也可用 <code>?selftest=1</code>）。</p>
+    </section>
+
+    <footer class="legend">
+      <p><b>鼠标：</b>左键拖动平移 · 滚轮缩放（以光标为锚点）</p>
+      <p><b>键盘：</b><kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> 切换渲染模式 · <kbd>空格</kbd> 生长暂停/继续 · <kbd>R</kbd> 重置视角</p>
+    </footer>
+  </aside>
+
+  <main class="stage">
+    <canvas id="glcanvas"></canvas>
+
+    <div class="hud">
+      <div class="hud-item"><span class="k">图元</span><span class="v" id="hudPrimitive">—</span></div>
+      <div class="hud-item"><span class="k">绘制顶点</span><span class="v" id="hudCount">—</span></div>
+      <div class="hud-item"><span class="k">缩放</span><span class="v" id="hudZoom">—</span></div>
+      <div class="hud-item"><span class="k">FPS</span><span class="v" id="hudFps">—</span></div>
+    </div>
+
+    <div class="overlay" id="errorOverlay" hidden>
+      <div class="card">
+        <h3>无法初始化 WebGL 2.0</h3>
+        <p id="errorMsg"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="selfTestModal" hidden>
+  <div class="modal-card">
+    <header class="modal-head">
+      <h3>自检结果</h3>
+      <button type="button" class="btn" id="selfTestClose">关闭（Esc）</button>
+    </header>
+    <p class="modal-summary" id="selfTestSummary"></p>
+    <ol class="modal-list" id="selfTestList"></ol>
+  </div>
+</div>
+
+<!-- 普通脚本按依赖顺序加载（不使用 ES Module，故可直接双击 file:// 打开） -->
+<script src="js/Common/MV.js"></script>
+<script src="js/Common/initShaders.js"></script>
+<script src="js/Common/webgl-utils.js"></script>
+<script src="js/colors.js"></script>
+<script src="js/gasket.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/interaction.js"></script>
+<script src="js/selftest.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
