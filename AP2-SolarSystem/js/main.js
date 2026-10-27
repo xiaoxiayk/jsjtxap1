@@ -8,7 +8,7 @@ let uTex = {}, uFlat = {}, uBelt = {};      // uniform 位置缓存
 
 // 几何对象
 let sunVAO, planetVAO, moonVAO, starVAO, ringVAO;
-let orbitLineVAO, moonOrbitLineVAO, earthAxisVAO, beltVAO;
+let orbitLineVAO, moonOrbitLineVAO, earthAxisVAO, beltVAO, umbraVAO;
 
 // 纹理表
 const textures = {};
@@ -28,7 +28,7 @@ window.onload = function () {
 
     uTex = uniforms(progTex,  ['uModel', 'uView', 'uProj', 'uNormalMat', 'uTexMap',
                                'uLightPos', 'uEyePos', 'uAmbient',
-                               'uEmissive', 'uShininess', 'uSpecular']);
+                               'uEmissive', 'uShininess', 'uSpecular', 'uEclipse']);
     uFlat = uniforms(progFlat, ['uModel', 'uView', 'uProj', 'uColor', 'uPointSize']);
     uBelt = uniforms(progBelt, ['uView', 'uProj', 'uSimTime', 'uColor', 'uPointSize']);
 
@@ -42,6 +42,8 @@ window.onload = function () {
     orbitLineVAO  = buildFlatVAO(gl, progFlat, createCircleLineData(256));
     moonOrbitLineVAO = orbitLineVAO;
     earthAxisVAO  = buildFlatVAO(gl, progFlat, createAxisLineData(1));
+    umbraVAO      = buildFlatVAO(gl, progFlat,
+                      createUmbraConeData(EARTH.radius, MOON.dist * ECLIPSE.umbraLenMul, 48));
     beltVAO       = buildBeltVAO(gl, progBelt,
                       createBeltData(ASTEROID_BELT.count, ASTEROID_BELT.rMin,
                                      ASTEROID_BELT.rMax, ASTEROID_BELT.ySpread));
@@ -69,10 +71,14 @@ window.onload = function () {
         if (!isFinite(dt) || dt < 0) dt = 0;      // 个别环境首帧时间戳可能异常
         dt = Math.min(dt, 0.1);
         last = now;
-        simTime  += dt * params.orbitSpeed;   // 公转时钟（受公转速度倍率）
-        spinTime += dt * params.spinSpeed;    // 自转时钟（受自转速度倍率）
-        camera.update(dt);
-        render(simTime, spinTime);
+        // E2：日食/月食视角下自动快进，减少等待日月对齐的干等时间
+        const warp = camera.eclipseView ? ECLIPSE.timeWarp : 1.0;
+        simTime  += dt * params.orbitSpeed * warp;   // 公转时钟（受公转速度倍率与视角快进）
+        spinTime += dt * params.spinSpeed;           // 自转时钟（受自转速度倍率）
+        const scene = buildSceneModelMatrices(simTime, spinTime, params.earthTilt);
+        window.__lastScene = scene;   // 调试接口：控制台可查看每帧的层级矩阵
+        camera.update(dt, scene);     // E2 专用机位需要地球/月球的实时位置
+        render(scene, simTime);
         requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -82,7 +88,7 @@ window.onload = function () {
 // 渲染
 // ============================================================
 
-function render(simTime, spinTime) {
+function render(scene, simTime) {
     resize();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.008, 0.008, 0.02, 1.0);
@@ -95,8 +101,14 @@ function render(simTime, spinTime) {
     const view = camera.viewMatrix();
     const proj = camera.projectionMatrix(aspect, params.projection);
     const eye = camera.eye();
-    const scene = buildSceneModelMatrices(simTime, spinTime, params.earthTilt);
-    window.__lastScene = scene;   // 调试接口：控制台可查看每帧的层级矩阵
+
+    // ---- E2 月食系数：月球方向与"背日方向"夹角越小，进入地影越深 ----
+    // 太阳位于世界原点，背日方向 = normalize(地球位置)
+    const antiSun = normalize(scene.earthPos);
+    const moonDir = normalize(vecSub(scene.moonPos, scene.earthPos));
+    const lunarEclipse = smoothstep(ECLIPSE.lunarFadeStart, ECLIPSE.lunarFadeFull,
+                                    dot(moonDir, antiSun));
+    window.__lastEclipse = lunarEclipse;   // 调试/验收接口：控制台查看当前月食系数
 
     // 1) 星空背景：自发光、不写深度（最先绘制，只作背景）
     if (params.showStars) {
@@ -140,9 +152,9 @@ function render(simTime, spinTime) {
         }
     });
 
-    // 5) 月球：挂在地球公转坐标系下的第四级变换
+    // 5) 月球：挂在地球公转坐标系下的第四级变换；uEclipse 驱动"血月"变红变暗
     drawTextured(moonVAO, textures.moon, scene.moon.model,
-        { emissive: 0.0, shininess: 6, specular: 0.04 });
+        { emissive: 0.0, shininess: 6, specular: 0.04, eclipse: lunarEclipse });
 
     // 6) 轨道线 / 地轴线：半透明叠加，画在实体之后（深度测试开着，不写深度）
     gl.useProgram(progFlat);
@@ -174,6 +186,16 @@ function render(simTime, spinTime) {
         gl.drawArrays(gl.LINES, 0, earthAxisVAO.count);
     }
 
+    // E2 地影本影锥：月食视角下常显（便于理解几何），其他视角仅在发生月食时浮现
+    if (camera.eclipseView === 'lunar' || lunarEclipse > 0.01) {
+        gl.bindVertexArray(umbraVAO.vao);
+        gl.uniform4f(uFlat.uColor, 0.0, 0.0, 0.05,
+                     ECLIPSE.umbraAlpha + 0.24 * lunarEclipse);
+        gl.uniformMatrix4fv(uFlat.uModel, false, flatten(scene.umbraCone.model));
+        gl.drawArrays(gl.TRIANGLES, 0, umbraVAO.count);
+        gl.bindVertexArray(null);
+    }
+
     gl.depthMask(true);
     gl.disable(gl.BLEND);
     gl.bindVertexArray(null);
@@ -201,6 +223,7 @@ function drawTextured(vao, texObj, model, opt) {
     gl.uniform1f(uTex.uEmissive, opt.emissive || 0.0);
     gl.uniform1f(uTex.uShininess, opt.shininess || 12.0);
     gl.uniform1f(uTex.uSpecular, opt.specular || 0.1);
+    gl.uniform1f(uTex.uEclipse, opt.eclipse || 0.0);   // E2：月食系数（仅月球>0）
 
     gl.drawElements(gl.TRIANGLES, vao.count, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
@@ -255,6 +278,12 @@ function uniforms(prog, names) {
     const o = {};
     names.forEach(function (n) { o[n] = gl.getUniformLocation(prog, n); });
     return o;
+}
+
+// 平滑过渡（E2 月食系数用）：edge0→edge1 之间 0→1，Hermite 缓动
+function smoothstep(edge0, edge1, x) {
+    const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    return t * t * (3 - 2 * t);
 }
 
 function resize() {

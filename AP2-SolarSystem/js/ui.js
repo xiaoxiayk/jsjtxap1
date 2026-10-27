@@ -1,6 +1,7 @@
 // ============================================================
 // ui.js —— 参数面板绑定 + 键盘交互 + HUD 状态
 //   键盘：O 切换投影 · 空格 暂停/继续漫游 · T 漫游/手动 · R 重置视角
+//         1/2/3 自由/日食/月食视角（E2） · V 轨迹球开关（E3）
 // ============================================================
 
 const params = {
@@ -12,6 +13,7 @@ const params = {
     showBelt: true,
     showStars: true,
     projection: 'persp',     // 'persp' | 'ortho'
+    trackball: false,        // E3：轨迹球拖拽模式
 };
 
 let camera = null;           // 由 main.js 赋值
@@ -45,6 +47,15 @@ function initUI() {
     $('b-pause').addEventListener('click', function () { camera.togglePause(); });
     $('b-reset').addEventListener('click', function () { camera.reset(); });
 
+    // E2 视角按钮 / E3 轨迹球按钮
+    $('b-view-free').addEventListener('click', function () { camera.setEclipseView(null); });
+    $('b-eclipse-solar').addEventListener('click', function () { camera.setEclipseView('solar'); });
+    $('b-eclipse-lunar').addEventListener('click', function () { camera.setEclipseView('lunar'); });
+    $('b-trackball').addEventListener('click', function () {
+        camera.setTrackball(!params.trackball);
+        this.classList.toggle('active', params.trackball);
+    });
+
     // ---- 键盘 ----
     window.addEventListener('keydown', function (e) {
         switch (e.code) {
@@ -52,13 +63,26 @@ function initUI() {
             case 'Space': e.preventDefault(); camera.togglePause(); break;   // 漫游暂停/继续
             case 'KeyT': toggleTourMode(); break;
             case 'KeyR': camera.reset(); break;
+            case 'Digit1': case 'Numpad1': camera.setEclipseView(null); break;      // E2 自由
+            case 'Digit2': case 'Numpad2': camera.setEclipseView('solar'); break;   // E2 日食
+            case 'Digit3': case 'Numpad3': camera.setEclipseView('lunar'); break;   // E2 月食
+            case 'KeyV':                                                            // E3 轨迹球
+                camera.setTrackball(!params.trackball);
+                document.getElementById('b-trackball').classList.toggle('active', params.trackball);
+                break;
         }
     });
 
     // 相机模式变化 → 刷新 HUD
     onCameraModeChanged = function () {
         const camEl = $('hud-cam');
-        if (camera.mode === 'tour') {
+        if (camera.eclipseView === 'solar') {
+            camEl.textContent = '日食视角（自动快进 ' + ECLIPSE.timeWarp + '×）';
+        } else if (camera.eclipseView === 'lunar') {
+            camEl.textContent = '月食视角（自动快进 ' + ECLIPSE.timeWarp + '×）';
+        } else if (params.trackball) {
+            camEl.textContent = '轨迹球视角';
+        } else if (camera.mode === 'tour') {
             camEl.textContent = camera.paused ? '漫游已暂停' : '漫游中';
         } else {
             camEl.textContent = '手动视角';

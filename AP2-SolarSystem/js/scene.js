@@ -131,5 +131,23 @@ function buildSceneModelMatrices(simTime, spinTime, earthTiltDeg) {
             scalem(MOON.dist, MOON.dist, MOON.dist))),
     };
 
+    // ---------- 日食/月食（选做 E2）----------
+    // 行主存储矩阵的第 4 列即平移分量：世界坐标 [m[0][3], m[1][3], m[2][3]]
+    scene.earthPos = [earthOrbit[0][3], earthOrbit[1][3], earthOrbit[2][3]];
+    scene.moonPos  = [moonOrbitModel[0][3], moonOrbitModel[1][3], moonOrbitModel[2][3]];
+
+    // 地影本影锥：挂在地球世界坐标处，锥体局部 +Y 对齐到"背日方向"
+    //（太阳位于世界原点，背日方向 = normalize(地球位置)）
+    const antiSun = normalize(scene.earthPos);
+    const cosA = dot([0, 1, 0], antiSun);
+    let alignRot;
+    if (cosA > 0.9999)       alignRot = mat4();        // 背日方向恰为 +Y
+    else if (cosA < -0.9999) alignRot = rotateZ(180);  // 恰为 -Y
+    else alignRot = rotate(deg(Math.acos(cosA)), normalize(cross([0, 1, 0], antiSun)));
+    scene.umbraCone = {
+        model: mult(translate(scene.earthPos), alignRot),
+        length: MOON.dist * ECLIPSE.umbraLenMul,
+    };
+
     return scene;
 }

@@ -102,6 +102,11 @@ input[type="range"]::-webkit-slider-thumb {
     transition: background .15s;
 }
 .btns button:hover { background: rgba(100, 145, 235, .34); }
+.btns button.active {
+    background: rgba(110, 160, 255, .45);
+    border-color: rgba(160, 195, 255, .8);
+    box-shadow: inset 0 0 6px rgba(200, 220, 255, .25);
+}
 
 .help {
     margin-top: 12px;

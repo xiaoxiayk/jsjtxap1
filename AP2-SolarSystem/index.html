@@ -44,10 +44,18 @@
     <button id="b-reset">重置 R</button>
   </div>
 
+  <div class="btns">
+    <button id="b-view-free">自由视角 1</button>
+    <button id="b-eclipse-solar">日食 2</button>
+    <button id="b-eclipse-lunar">月食 3</button>
+    <button id="b-trackball">轨迹球 V</button>
+  </div>
+
   <p class="help">
     鼠标拖拽：旋转视角 · 滚轮：缩放<br>
     <b>O</b> 切换透视/正交 · <b>空格</b> 暂停/继续漫游<br>
-    <b>T</b> 漫游/手动切换 · <b>R</b> 重置视角
+    <b>T</b> 漫游/手动切换 · <b>R</b> 重置视角<br>
+    <b>1/2/3</b> 自由/日食/月食视角 · <b>V</b> 轨迹球拖拽
   </p>
 </div>
 
@@ -93,6 +101,7 @@ uniform vec3  uAmbient;     // 环境光分量（教材 Ch6）
 uniform float uEmissive;    // 1 = 自发光（太阳/星空），0 = 受光天体
 uniform float uShininess;   // 高光指数
 uniform float uSpecular;    // 镜面强度
+uniform float uEclipse;     // 月食系数（选做 E2）：0 = 正常，1 = 完全进入地影本影
 
 out vec4 outColor;
 
@@ -111,6 +120,9 @@ void main() {
                : 0.0;
 
     vec3 lit  = texColor.rgb * (uAmbient + diff * vec3(1.0)) + spec * vec3(1.0);
+    // E2 月食：直射阳光被地球挡住，只剩穿过地球大气折射/散射的暗红光（"血月"）
+    vec3 blood = texColor.rgb * vec3(0.45, 0.10, 0.05) * 1.5;
+    lit = mix(lit, blood, uEclipse);
     outColor  = vec4(mix(lit, texColor.rgb, uEmissive), texColor.a);
 }
 </script>
@@ -162,12 +174,12 @@ void main() { outColor = uColor; }
 <script src="Common/initShaders.js"></script>
 <script src="Common/MV.js"></script>
 <script src="Common/webgl-utils.js"></script>
-<script src="js/config.js?v=9"></script>
-<script src="js/geometry.js?v=9"></script>
-<script src="js/scene.js?v=9"></script>
-<script src="js/camera.js?v=9"></script>
-<script src="js/ui.js?v=9"></script>
-<script src="js/main.js?v=9"></script>
+<script src="js/config.js?v=10"></script>
+<script src="js/geometry.js?v=10"></script>
+<script src="js/scene.js?v=10"></script>
+<script src="js/camera.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
+<script src="js/main.js?v=10"></script>
 
 </body>
 </html>

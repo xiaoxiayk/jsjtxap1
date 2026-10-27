@@ -45,6 +45,15 @@ const ASTEROID_BELT = {
     ySpread: 1.6,
 };
 
+// 日食/月食模拟参数（选做 E2）
+const ECLIPSE = {
+    timeWarp: 6,             // 日食/月食视角下自动快进倍率（等待对齐不用干等）
+    umbraLenMul: 3.0,        // 地影本影锥长度 = 月地距 × 3（真实约 3.6 倍月地距）
+    umbraAlpha: 0.16,        // 本影锥基础不透明度（随食分加深）
+    lunarFadeStart: 0.9962,  // cos(月-反日向 夹角)：开始进入半影（约 5°，对应白道倾角上限）
+    lunarFadeFull: 0.9995,   // 夹角 < 1.8° 时达食甚（只有升/降交点附近才可能，见 README）
+};
+
 const STAR_SPHERE_RADIUS = 900;
 
 // 每条轨道线的显示颜色（RGBA）

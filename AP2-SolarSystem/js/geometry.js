@@ -69,6 +69,20 @@ function createAxisLineData(halfLen) {
     return { positions: [0, -halfLen, 0,   0, halfLen, 0] };
 }
 
+// ---- 地影本影锥（选做 E2）：底圆在原点（地球处），锥顶在局部 +Y 方向 length 处 ----
+// 之后用模型矩阵把 +Y 对齐到"背日方向"，即得从地球延伸出的本影
+function createUmbraConeData(radius, length, segments) {
+    const positions = [];
+    for (let j = 0; j < segments; ++j) {
+        const a0 = j * 2 * Math.PI / segments;
+        const a1 = (j + 1) * 2 * Math.PI / segments;
+        const x0 = Math.cos(a0) * radius, z0 = Math.sin(a0) * radius;
+        const x1 = Math.cos(a1) * radius, z1 = Math.sin(a1) * radius;
+        positions.push(x0, 0, z0,  x1, 0, z1,  0, length, 0);   // 侧面三角形
+    }
+    return { positions };
+}
+
 // ---- 小行星带：每颗小行星一条圆轨道（半径/相位/角速度/高度）----
 // 角速度同样服从 ω = K / r^(3/2)，在顶点着色器中随时间推进
 function createBeltData(count, rMin, rMax, ySpread) {
