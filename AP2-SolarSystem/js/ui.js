@@ -77,7 +77,7 @@ function initUI() {
     onCameraModeChanged = function () {
         const camEl = $('hud-cam');
         if (camera.eclipseView === 'solar') {
-            camEl.textContent = '日食视角（自动快进 ' + ECLIPSE.timeWarp + '×）';
+            camEl.textContent = '日食视角（快进 ' + ECLIPSE.timeWarp + '×·凌日自动慢放）';
         } else if (camera.eclipseView === 'lunar') {
             camEl.textContent = '月食视角（快进 ' + ECLIPSE.timeWarp + '×·入影自动慢放）';
         } else if (params.trackball) {

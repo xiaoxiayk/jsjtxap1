@@ -82,13 +82,14 @@ class OrbitCamera {
         const earth = scene.earthPos, moon = scene.moonPos, z = this.eclipseZoom;
 
         if (this.eclipseView === 'solar') {
-            // 日食：机位悬在地球夜面上空（贴近地表）望向太阳——重现"站在地球上看日食"。
-            // 月球运行到日地之间（朔）时凌日，由深度测试自然遮挡成"环食"：
-            // 场景尺度下月球角直径小于太阳（0.55/5.5 vs 8/36），故只能环食不能全食。
-            // 注意用 norm3（非变异），MV.js 的 normalize 会原地改写 earthPos
+            // 日食：机位放在"地月之间"的日地连线上（距地心 3，朝太阳方向）望向太阳。
+            // 朔（月球运行到日地之间）时月球从相机前仅 2.5 处掠过日面：
+            // 月球视张角 12.5° vs 太阳 13.9°，呈接近全食的"金环"日食；
+            // 月面背光（Phong 漫反射趋零）呈黑色剪影，遮挡由深度测试自然完成。
+            // 注意：不能把机位贴在地球夜面上空——那里看地球的视张角约 46°，
+            // 整个视场会被黑色地球糊满，太阳完全不可见。
             const antiSun = norm3(earth);
-            this._eclipseEye = vecAdd(earth,
-                vecAdd(vecScale(antiSun, (EARTH.radius + 0.6) * z), [0, 0.9 * z, 0]));
+            this._eclipseEye = vecAdd(earth, vecScale(antiSun, -3.0));
             this._eclipseTarget = [0, 0, 0];          // 注视太阳（世界原点）
         } else {
             // 月食：贴近月球、朝背日方向望——前景月球，远处地球夜面与本影锥

@@ -72,9 +72,11 @@ window.onload = function () {
         dt = Math.min(dt, 0.1);
         last = now;
         // E2：日食/月食视角下自动快进，减少等待日月对齐的干等时间；
-        // 月食视角一旦检测到入影（上一帧食分>0.02）立即切慢放，血月过程清晰可见
+        // 检测到入影/凌日（上一帧食分或对齐度超阈值）立即切慢放，过程清晰可见
         let warp = camera.eclipseView ? ECLIPSE.timeWarp : 1.0;
         if (camera.eclipseView === 'lunar' && window.__lastEclipse > 0.02) {
+            warp = ECLIPSE.eclipseSlowMo;
+        } else if (camera.eclipseView === 'solar' && window.__solarAlign > 0.87) {
             warp = ECLIPSE.eclipseSlowMo;
         }
         simTime  += dt * params.orbitSpeed * warp;   // 公转时钟（受公转速度倍率与视角快进）
@@ -113,6 +115,8 @@ function render(scene, simTime) {
     const lunarEclipse = smoothstep(ECLIPSE.lunarFadeStart, ECLIPSE.lunarFadeFull,
                                     dot(moonDir, antiSun));
     window.__lastEclipse = lunarEclipse;   // 调试/验收接口：控制台查看当前月食系数
+    // 日食对齐度：dot(月方向, 日方向) → 1 表示朔（月球在日地之间），驱动凌日自动慢放
+    window.__solarAlign = -dot(moonDir, antiSun);
 
     // 1) 星空背景：自发光、不写深度（最先绘制，只作背景）
     if (params.showStars) {
