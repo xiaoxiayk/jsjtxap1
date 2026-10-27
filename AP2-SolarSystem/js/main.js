@@ -71,8 +71,12 @@ window.onload = function () {
         if (!isFinite(dt) || dt < 0) dt = 0;      // 个别环境首帧时间戳可能异常
         dt = Math.min(dt, 0.1);
         last = now;
-        // E2：日食/月食视角下自动快进，减少等待日月对齐的干等时间
-        const warp = camera.eclipseView ? ECLIPSE.timeWarp : 1.0;
+        // E2：日食/月食视角下自动快进，减少等待日月对齐的干等时间；
+        // 月食视角一旦检测到入影（上一帧食分>0.02）立即切慢放，血月过程清晰可见
+        let warp = camera.eclipseView ? ECLIPSE.timeWarp : 1.0;
+        if (camera.eclipseView === 'lunar' && window.__lastEclipse > 0.02) {
+            warp = ECLIPSE.eclipseSlowMo;
+        }
         simTime  += dt * params.orbitSpeed * warp;   // 公转时钟（受公转速度倍率与视角快进）
         spinTime += dt * params.spinSpeed;           // 自转时钟（受自转速度倍率）
         const scene = buildSceneModelMatrices(simTime, spinTime, params.earthTilt);
@@ -103,9 +107,9 @@ function render(scene, simTime) {
     const eye = camera.eye();
 
     // ---- E2 月食系数：月球方向与"背日方向"夹角越小，进入地影越深 ----
-    // 太阳位于世界原点，背日方向 = normalize(地球位置)
-    const antiSun = normalize(scene.earthPos);
-    const moonDir = normalize(vecSub(scene.moonPos, scene.earthPos));
+    // 太阳位于世界原点，背日方向 = normalize(地球位置)；norm3 不改写共享的 earthPos
+    const antiSun = norm3(scene.earthPos);
+    const moonDir = norm3(vecSub(scene.moonPos, scene.earthPos));
     const lunarEclipse = smoothstep(ECLIPSE.lunarFadeStart, ECLIPSE.lunarFadeFull,
                                     dot(moonDir, antiSun));
     window.__lastEclipse = lunarEclipse;   // 调试/验收接口：控制台查看当前月食系数

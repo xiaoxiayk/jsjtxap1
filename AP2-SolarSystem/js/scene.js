@@ -29,6 +29,14 @@
 // 弧度 → 角度（MV.js 的 rotateX/Y/Z 均以角度为单位）
 function deg(a) { return a * 180 / Math.PI; }
 
+// 非变异归一化：Common/MV.js 的 normalize() 会原地修改传入数组（u[i] /= len）。
+// 若直接传 scene.earthPos 这类每帧复用的共享数据，会被破坏成单位向量
+//（曾导致日食机位落入太阳内部），因此对共享向量一律用本函数取副本。
+function norm3(v) {
+    const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    return [v[0] / len, v[1] / len, v[2] / len];
+}
+
 // 行星公转角速度：开普勒第三定律 ω = K / d^(3/2)（rad/s，1× 速度）
 function orbitalOmega(dist) {
     return KEPLER_K / Math.pow(dist, 1.5);
@@ -84,7 +92,10 @@ function buildSceneModelMatrices(simTime, spinTime, earthTiltDeg) {
     //   2) R_x(i)   绕 X 轴倾斜轨道面
     //   3) R_y(-Ω)  把节点线转回原方位
     // 即 M_tilt = R_y(-Ω) · R_x(i) · R_y(Ω)，逐层 mult 手工组合。
-    const i = MOON.inclination, Omega = MOON.nodeLon;
+    // Ω 随时间缓慢西退（升交点西退，真实 18.6 年周期）：月球轨道环会缓慢进动，
+    // 满月相位得以扫过交点，日食/月食呈"食季"式分布（见选做 E2 说明）。
+    const i = MOON.inclination;
+    const Omega = MOON.nodeLon - MOON.nodeRegression * simTime;
     const moonTiltManual = mult(
         rotateY(-Omega),
         mult(rotateX(i), rotateY(Omega))
@@ -137,8 +148,8 @@ function buildSceneModelMatrices(simTime, spinTime, earthTiltDeg) {
     scene.moonPos  = [moonOrbitModel[0][3], moonOrbitModel[1][3], moonOrbitModel[2][3]];
 
     // 地影本影锥：挂在地球世界坐标处，锥体局部 +Y 对齐到"背日方向"
-    //（太阳位于世界原点，背日方向 = normalize(地球位置)）
-    const antiSun = normalize(scene.earthPos);
+    //（太阳位于世界原点，背日方向 = normalize(地球位置)；norm3 不改动 earthPos 本身）
+    const antiSun = norm3(scene.earthPos);
     const cosA = dot([0, 1, 0], antiSun);
     let alignRot;
     if (cosA > 0.9999)       alignRot = mat4();        // 背日方向恰为 +Y

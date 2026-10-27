@@ -79,7 +79,7 @@ function initUI() {
         if (camera.eclipseView === 'solar') {
             camEl.textContent = '日食视角（自动快进 ' + ECLIPSE.timeWarp + '×）';
         } else if (camera.eclipseView === 'lunar') {
-            camEl.textContent = '月食视角（自动快进 ' + ECLIPSE.timeWarp + '×）';
+            camEl.textContent = '月食视角（快进 ' + ECLIPSE.timeWarp + '×·入影自动慢放）';
         } else if (params.trackball) {
             camEl.textContent = '轨迹球视角';
         } else if (camera.mode === 'tour') {
