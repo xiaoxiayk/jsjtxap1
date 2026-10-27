@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP2 · 三维层级场景：太阳系（WebGL 2.0）</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="gl-canvas"></canvas>
+
+<!-- 顶部状态条 -->
+<div id="hud">
+  <span id="hud-proj">透视投影</span><span class="sep">·</span>
+  <span id="hud-cam">漫游中</span><span class="sep">·</span>
+  <span>拖拽 / 滚轮可随时接管视角</span>
+</div>
+
+<!-- 参数面板 -->
+<div id="panel">
+  <h1>太阳系 <small>AP2 · Ch4–5</small></h1>
+
+  <label>公转速度 <b id="v-orbit">1.0×</b></label>
+  <input type="range" id="s-orbit" min="0" max="5" step="0.1" value="1">
+
+  <label>自转速度 <b id="v-spin">1.0×</b></label>
+  <input type="range" id="s-spin" min="0" max="5" step="0.1" value="1">
+
+  <label>地轴倾角（地球）<b id="v-tilt">23.5°</b></label>
+  <input type="range" id="s-tilt" min="0" max="60" step="0.5" value="23.5">
+
+  <div class="checks">
+    <label class="chk"><input type="checkbox" id="c-orbits" checked> 轨道线</label>
+    <label class="chk"><input type="checkbox" id="c-axis" checked> 地轴线</label>
+    <label class="chk"><input type="checkbox" id="c-belt" checked> 小行星带</label>
+    <label class="chk"><input type="checkbox" id="c-stars" checked> 星空背景</label>
+  </div>
+
+  <div class="btns">
+    <button id="b-proj">投影 P/O</button>
+    <button id="b-tour">漫游 T</button>
+    <button id="b-pause">暂停 ␣</button>
+    <button id="b-reset">重置 R</button>
+  </div>
+
+  <p class="help">
+    鼠标拖拽：旋转视角 · 滚轮：缩放<br>
+    <b>O</b> 切换透视/正交 · <b>空格</b> 暂停/继续漫游<br>
+    <b>T</b> 漫游/手动切换 · <b>R</b> 重置视角
+  </p>
+</div>
+
+<!-- ============================================================
+     着色器（GLSL ES 3.00，教材第 8 版风格：script 标签 + initShaders 加载）
+     ============================================================ -->
+
+<!-- 带纹理的 Phong 光照程序：太阳/行星/月球/土星环/星空球 -->
+<script id="vertex-tex" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+in vec3 aNormal;
+in vec2 aTexCoord;
+
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProj;
+uniform mat3 uNormalMat;   // 模型矩阵左上 3x3 的逆转置（法线矩阵）
+
+out vec3 vNormal;
+out vec2 vTexCoord;
+out vec3 vWorldPos;
+
+void main() {
+    vec4 world = uModel * vec4(aPosition, 1.0);
+    vWorldPos = world.xyz;
+    vNormal   = uNormalMat * aNormal;
+    vTexCoord = aTexCoord;
+    gl_Position = uProj * uView * world;
+}
+</script>
+
+<script id="fragment-tex" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in vec3 vNormal;
+in vec2 vTexCoord;
+in vec3 vWorldPos;
+
+uniform sampler2D uTexMap;
+uniform vec3  uLightPos;    // 点光源：太阳（世界坐标原点）
+uniform vec3  uEyePos;
+uniform vec3  uAmbient;     // 环境光分量（教材 Ch6）
+uniform float uEmissive;    // 1 = 自发光（太阳/星空），0 = 受光天体
+uniform float uShininess;   // 高光指数
+uniform float uSpecular;    // 镜面强度
+
+out vec4 outColor;
+
+void main() {
+    vec4 texColor = texture(uTexMap, vTexCoord);
+
+    // Phong 模型：环境 + 漫反射 + 镜面（Ch6）
+    vec3 N = normalize(vNormal);
+    vec3 L = normalize(uLightPos - vWorldPos);
+    vec3 V = normalize(uEyePos   - vWorldPos);
+    vec3 R = reflect(-L, N);
+
+    float diff = max(dot(N, L), 0.0);
+    float spec = (dot(N, L) > 0.0)
+               ? uSpecular * pow(max(dot(R, V), 0.0), uShininess)
+               : 0.0;
+
+    vec3 lit  = texColor.rgb * (uAmbient + diff * vec3(1.0)) + spec * vec3(1.0);
+    outColor  = vec4(mix(lit, texColor.rgb, uEmissive), texColor.a);
+}
+</script>
+
+<!-- 纯色程序：轨道线 / 地轴线 -->
+<script id="vertex-flat" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProj;
+uniform float uPointSize;
+void main() {
+    gl_Position  = uProj * uView * uModel * vec4(aPosition, 1.0);
+    gl_PointSize = uPointSize;
+}
+</script>
+
+<script id="fragment-flat" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 outColor;
+void main() { outColor = uColor; }
+</script>
+
+<!-- 小行星带程序：每颗小行星的圆轨道在顶点着色器内按开普勒角速度计算 -->
+<script id="vertex-belt" type="x-shader/x-vertex">#version 300 es
+in vec4 aOrbit;              // x: 轨道半径  y: 初始相位  z: 角速度(rad/s)  w: 高度偏移
+uniform mat4 uView;
+uniform mat4 uProj;
+uniform float uSimTime;      // 已乘公转速度倍率的模拟时间
+uniform float uPointSize;
+void main() {
+    float ang = aOrbit.y + aOrbit.z * uSimTime;
+    vec3 pos  = vec3(cos(ang) * aOrbit.x, aOrbit.w, -sin(ang) * aOrbit.x);
+    gl_Position  = uProj * uView * vec4(pos, 1.0);
+    gl_PointSize = uPointSize;
+}
+</script>
+
+<script id="fragment-belt" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 outColor;
+void main() { outColor = uColor; }
+</script>
+
+<!-- ============================================================ -->
+
+<script src="Common/initShaders.js"></script>
+<script src="Common/MV.js"></script>
+<script src="Common/webgl-utils.js"></script>
+<script src="js/config.js?v=5"></script>
+<script src="js/geometry.js?v=5"></script>
+<script src="js/scene.js?v=5"></script>
+<script src="js/camera.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
+
+</body>
+</html>

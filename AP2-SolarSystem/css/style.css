@@ -1,0 +1,111 @@
+/* ===== AP2 太阳系 · 页面样式 ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #020208;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: #dfe6f2;
+}
+
+#gl-canvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+    cursor: grab;
+}
+#gl-canvas:active { cursor: grabbing; }
+
+/* ---- 顶部状态条 ---- */
+#hud {
+    position: fixed; top: 14px; left: 18px;
+    padding: 8px 14px;
+    background: rgba(10, 14, 30, .55);
+    border: 1px solid rgba(120, 150, 220, .22);
+    border-radius: 10px;
+    font-size: 13px;
+    letter-spacing: .04em;
+    backdrop-filter: blur(8px);
+    user-select: none;
+}
+#hud .sep { margin: 0 8px; opacity: .4; }
+#hud-proj, #hud-cam { color: #8fd0ff; font-weight: 600; }
+
+/* ---- 参数面板 ---- */
+#panel {
+    position: fixed; top: 14px; right: 14px;
+    width: 248px;
+    padding: 16px 16px 12px;
+    background: rgba(10, 14, 30, .62);
+    border: 1px solid rgba(120, 150, 220, .22);
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+    user-select: none;
+}
+#panel h1 {
+    font-size: 17px; font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: .06em;
+}
+#panel h1 small {
+    display: block; margin-top: 3px;
+    font-size: 11px; font-weight: 400;
+    color: #93a4c8; letter-spacing: .12em;
+}
+#panel label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12.5px; color: #b9c5e0;
+    margin: 10px 0 4px;
+}
+#panel label b { color: #8fd0ff; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+input[type="range"] {
+    width: 100%; height: 22px;
+    appearance: none; -webkit-appearance: none;
+    background: transparent; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, #3f6fd8, #7fb3ff);
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; margin-top: -5px;
+    border-radius: 50%;
+    background: #eaf2ff;
+    box-shadow: 0 0 6px rgba(140, 180, 255, .8);
+}
+
+.checks {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px 10px; margin: 14px 0 4px;
+}
+.chk {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: #cdd8ef; cursor: pointer;
+}
+.chk input { accent-color: #5a8fe8; }
+
+.btns {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-top: 12px;
+}
+.btns button {
+    padding: 7px 4px;
+    font-size: 12.5px; font-family: inherit;
+    color: #dfe6f2;
+    background: rgba(90, 130, 220, .18);
+    border: 1px solid rgba(130, 165, 240, .35);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+}
+.btns button:hover { background: rgba(100, 145, 235, .34); }
+
+.help {
+    margin-top: 12px;
+    font-size: 11px; line-height: 1.75;
+    color: #8b99bb;
+}
+.help b { color: #aebfe4; }
