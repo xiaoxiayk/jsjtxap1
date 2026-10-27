@@ -26,7 +26,9 @@ python3 -m http.server 8000
 
 ### 公网访问
 
-把仓库推到 GitHub 之后，打开仓库设置里的 Pages 页，把 Source 选成 main 分支的根目录再保存，等一分钟左右就能通过 `https://<用户名>.github.io/<仓库名>/` 访问了；Gitee Pages 或者个人主页的做法也是类似的。
+**在线演示地址：<https://xiaoxiayk.github.io/jsjtxap1/AP2-SolarSystem/>**，浏览器直接打开即可运行，无需任何安装。
+
+部署过程：把仓库推到 GitHub 之后，打开仓库设置里的 Pages 页，把 Source 选成 main 分支的根目录再保存，等一分钟左右 GitHub 就会自动生成上面的访问地址；Gitee Pages 或者个人主页的做法也是类似的。
 
 ---
 
