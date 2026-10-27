@@ -96,6 +96,7 @@ function render(simTime, spinTime) {
     const proj = camera.projectionMatrix(aspect, params.projection);
     const eye = camera.eye();
     const scene = buildSceneModelMatrices(simTime, spinTime, params.earthTilt);
+    window.__lastScene = scene;   // 调试接口：控制台可查看每帧的层级矩阵
 
     // 1) 星空背景：自发光、不写深度（最先绘制，只作背景）
     if (params.showStars) {

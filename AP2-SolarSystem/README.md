@@ -52,7 +52,7 @@ python3 -m http.server 8000
 
 按 `T`（或首次加载默认）进入漫游：相机沿 6 个关键帧（球坐标方位角 θ、仰角 φ、距离 d）**周期 Catmull-Rom 插值**绕场景一周（36 s，末帧无缝接回首帧），途中俯冲拉近内行星带、再拉远掠过外行星。空格暂停/继续；拖拽即接管，按 `T` 随时回到漫游路径。
 
-录屏方法（提交前补 10 秒即可）：macOS `⇧⌘5`（录制选定区域框住浏览器窗口）或 QuickTime → 新建屏幕录制；Windows `Win+G`。录屏开始前先按 `T` 确保处于漫游状态。
+**10 秒漫游录屏**：[screenshots/tour-10s.webm](screenshots/tour-10s.webm) —— 通过 `canvas.captureStream(30)` + `MediaRecorder` 在浏览器内实录的漫游画面（WebM/VP9，30 fps）。
 
 ---
 

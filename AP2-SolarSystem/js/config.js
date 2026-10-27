@@ -50,4 +50,4 @@ const STAR_SPHERE_RADIUS = 900;
 // 每条轨道线的显示颜色（RGBA）
 const ORBIT_LINE_COLOR = [0.62, 0.72, 0.95, 0.38];
 const MOON_ORBIT_LINE_COLOR = [0.95, 0.88, 0.62, 0.5];
-const EARTH_AXIS_COLOR = [0.35, 0.9, 1.0, 0.85];
+const EARTH_AXIS_COLOR = [0.4, 0.95, 1.0, 1.0];

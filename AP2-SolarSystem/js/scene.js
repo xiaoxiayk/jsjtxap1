@@ -114,8 +114,11 @@ function buildSceneModelMatrices(simTime, spinTime, earthTiltDeg) {
     scene.ring = scene.planets.find(function (e) { return e.ringModel; });
 
     // ---------- 地轴线（直观展示 23.5° 倾角）----------
+    // 单位线段沿 Y 轴放大到 1.9 倍地球半径，使其穿出球体可见
     scene.earthAxis = {
-        model: mult(earthOrbit, rotateZ(earthTiltDeg)),
+        model: mult(earthOrbit, mult(
+            rotateZ(earthTiltDeg),
+            scalem(1, EARTH.radius * 1.9, 1))),
         halfLen: EARTH.radius * 1.9,
     };
 
